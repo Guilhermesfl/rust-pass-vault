@@ -1,10 +1,11 @@
-use serde::{Deserialise, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
+use std::io::BufRead;
 use std::io::Write;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ServiceInfo {
     pub service: String,
     pub username: String,
@@ -21,8 +22,9 @@ impl ServiceInfo {
     }
 
     pub fn from_json(json_string: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(json_string);
+        serde_json::from_str(json_string)
     }
+
     #[allow(dead_code)]
     pub fn from_user_input() -> Self {
         println!("Enter service Entry:");
@@ -49,4 +51,49 @@ impl ServiceInfo {
             password.trim().to_string(),
         )
     }
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).expect("Failed to serialize to JSON")
+    }
+
+    pub fn write_to_file(&self) {
+        let json_output = format!("{}\n", self.to_json());
+
+        match OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("password.json")
+        {
+            Ok(mut file) => {
+                if let Err(e) = file.write_all(json_output.as_bytes()) {
+                    eprintln!("Error writing to file {}", e);
+                } else {
+                    println!("Succesfully wrote to password.json");
+                }
+            }
+            Err(e) => eprintln!("Error opening file: {}", e),
+        }
+    }
+}
+
+pub fn read_passwords_from_file() -> Result<Vec<ServiceInfo>, io::Error> {
+    let file = File::open("password.json")?;
+    let reader = io::BufReader::new(file);
+    let mut services = Vec::new();
+
+    for line in reader.lines() {
+        if let Ok(json_string) = line {
+            if let Ok(service_info) = ServiceInfo::from_json(&json_string) {
+                services.push(service_info);
+            }
+        }
+    }
+    Ok(services)
+}
+
+pub fn prompt(prompt: &str) -> String {
+    print!("{}", prompt);
+    io::stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.trim().to_string()
 }

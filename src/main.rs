@@ -2,6 +2,7 @@ mod pentry;
 
 use crate::pentry::prompt;
 use crate::pentry::read_passwords_from_file;
+use crate::pentry::ServiceInfo;
 
 fn clr() {
     print!("{}[2j", 27 as char);
@@ -32,8 +33,12 @@ fn main() {
             "1" => {
                 clr();
                 let entry = ServiceInfo::new(
-                    
-                )
+                    prompt("Service: "),
+                    prompt("Username: "),
+                    prompt("Password: "),
+                );
+                println!("Entry added succesfully.");
+                entry.write_to_file();
             }
             "2" => {
                 clr();
@@ -43,9 +48,7 @@ fn main() {
                 });
                 for item in &services {
                     println!(
-                        "Service = {}
-                        - Username: {}
-                        - Password: {}",
+                        "Service = {}\n- Username: {}\n- Password: {}",
                         item.service, item.username, item.password
                     )
                 }
@@ -54,15 +57,13 @@ fn main() {
                 clr();
                 let services = read_passwords_from_file().unwrap_or_else(|err| {
                     eprintln!("Error reading passwords: {}", err);
-                    Vec::new();
+                    Vec::new()
                 });
                 let search = prompt("Search:");
                 for item in &services {
                     if item.service.as_str() == search.as_str() {
                         println!(
-                            "Service = {}
-                            - Username = {}
-                            - Password = {}",
+                            "Service = {}\n- Username = {}\n- Password = {}",
                             item.service, item.username, item.password
                         )
                     }
